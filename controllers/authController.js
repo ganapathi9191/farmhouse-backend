@@ -1,4 +1,4 @@
-import User from "../models/User.js";
+import {User,Banner} from "../models/User.js";
 import bcrypt from "bcryptjs";
 import { generateToken, verifyToken } from "../utils/jwt.js";
 import cloudinary from "../config/cloudinary.js";
@@ -389,5 +389,165 @@ export const deleteAccount = async (req, res) => {
 
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+// ------------------------------------------------------------
+// UPLOAD MULTIPLE IMAGES (CREATE BANNER)
+// ------------------------------------------------------------
+export const createBanner = async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "At least 1 image required" });
+    }
+
+    const urls = [];
+
+    for (const file of req.files) {
+      const uploaded = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder: "banner_images",
+            resource_type: "auto"
+          },
+          (err, result) => {
+            if (err) reject(err);
+            else resolve(result);
+          }
+        );
+        stream.end(file.buffer);
+      });
+
+      urls.push(uploaded.secure_url);
+    }
+
+    const banner = await Banner.create({ images: urls });
+
+    res.json({
+      success: true,
+      message: "Banner created successfully",
+      banner
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+// ------------------------------------------------------------
+// GET ALL BANNERS
+// ------------------------------------------------------------
+export const getAllBanners = async (req, res) => {
+  try {
+    const banners = await Banner.find().sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      banners
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+// ------------------------------------------------------------
+// GET SINGLE BANNER
+// ------------------------------------------------------------
+export const getBanner = async (req, res) => {
+  try {
+    const banner = await Banner.findById(req.params.bannerId);
+
+    if (!banner) return res.status(404).json({ message: "Banner not found" });
+
+    res.json({
+      success: true,
+      banner
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+// ------------------------------------------------------------
+// UPDATE BANNER (REPLACE ALL IMAGES)
+// ------------------------------------------------------------
+export const updateBanner = async (req, res) => {
+  try {
+    const { bannerId } = req.params;
+
+    const banner = await Banner.findById(bannerId);
+    if (!banner) return res.status(404).json({ message: "Banner not found" });
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "Images are required" });
+    }
+
+    // Delete existing images from Cloudinary
+    for (const img of banner.images) {
+      const publicId = img.split("/").pop().split(".")[0];
+      await cloudinary.uploader.destroy(`banner_images/${publicId}`);
+    }
+
+    // Upload new images
+    const newUrls = [];
+    for (const file of req.files) {
+      const uploaded = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder: "banner_images",
+            resource_type: "auto"
+          },
+          (err, result) => {
+            if (err) reject(err);
+            else resolve(result);
+          }
+        );
+        stream.end(file.buffer);
+      });
+
+      newUrls.push(uploaded.secure_url);
+    }
+
+    banner.images = newUrls;
+    await banner.save();
+
+    res.json({
+      success: true,
+      message: "Banner updated successfully",
+      banner
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+// ------------------------------------------------------------
+// DELETE BANNER + CLOUDINARY IMAGES
+// ------------------------------------------------------------
+export const deleteBanner = async (req, res) => {
+  try {
+    const { bannerId } = req.params;
+
+    const banner = await Banner.findById(bannerId);
+
+    if (!banner) return res.status(404).json({ message: "Banner not found" });
+
+    // Delete images from Cloudinary
+    for (const img of banner.images) {
+      const publicId = img.split("/").pop().split(".")[0];
+      await cloudinary.uploader.destroy(`banner_images/${publicId}`);
+    }
+
+    await Banner.findByIdAndDelete(bannerId);
+
+    res.json({
+      success: true,
+      message: "Banner deleted successfully"
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };

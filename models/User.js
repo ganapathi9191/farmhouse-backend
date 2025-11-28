@@ -1,18 +1,34 @@
 import mongoose from "mongoose";
 
+// --------------------------------------
+// USER SCHEMA
+// --------------------------------------
 const userSchema = new mongoose.Schema({
   firstName: String,
   lastName: String,
-  fullName: String,      // auto combine
+  fullName: String,
   username: String,
+
   gender: { type: String, enum: ["male", "female", "other"], default: "other" },
 
-  email: { type: String, unique: true },       // from registration (cannot update)
-  phoneNumber: { type: String, unique: true }, // login number (cannot update)
+  email: { type: String, unique: true },
+  phoneNumber: { type: String, unique: true },
 
-  profileImage: { type: String }, // cloudinary URL
+  profileImage: String,
 
   password: String,
 });
 
-export default mongoose.model("User", userSchema);
+// --------------------------------------
+// BANNER SCHEMA
+// --------------------------------------
+const bannerSchema = new mongoose.Schema({
+  images: [String], // Cloudinary URLs array
+  createdAt: { type: Date, default: Date.now }
+});
+
+// --------------------------------------
+// EXPORT MODELS (NO DEFAULT)
+// --------------------------------------
+export const User = mongoose.model("User", userSchema);
+export const Banner = mongoose.model("Banner", bannerSchema);
