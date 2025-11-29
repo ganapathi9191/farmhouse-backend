@@ -551,3 +551,206 @@ export const deleteBanner = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+
+//live location
+
+export const saveLiveLocation = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { lat, lng } = req.body;
+
+    if (!lat || !lng)
+      return res.status(400).json({ message: "Lat & Lng required" });
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        liveLocation: {
+          type: "Point",
+          coordinates: [lng, lat]
+        }
+      },
+      { new: true }
+    );
+
+    if (!user)
+      return res.status(404).json({ message: "User not found" });
+
+    res.json({
+      success: true,
+      message: "Live location saved successfully",
+      liveLocation: user.liveLocation
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const getLiveLocation = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findById(userId);
+
+    if (!user)
+      return res.status(404).json({ message: "User not found" });
+
+    res.json({
+      success: true,
+      liveLocation: user.liveLocation
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const deleteLiveLocation = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        liveLocation: {
+          type: "Point",
+          coordinates: [0.0, 0.0]
+        }
+      },
+      { new: true }
+    );
+
+    if (!updatedUser)
+      return res.status(404).json({ message: "User not found" });
+
+    res.json({
+      success: true,
+      message: "Live location deleted",
+      liveLocation: updatedUser.liveLocation
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const addAddress = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const {
+      street, city, state, country,
+      postalCode, addressType, lat, lng
+    } = req.body;
+
+    if (!street || !city || !state || !country || !postalCode)
+      return res.status(400).json({ message: "All fields required" });
+
+    const fullAddress =
+      `${street}, ${city}, ${state}, ${postalCode}, ${country}`;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        $push: {
+          addresses: {
+            street, city, state, country,
+            postalCode, addressType, lat, lng, fullAddress
+          }
+        }
+      },
+      { new: true }
+    );
+
+    res.json({
+      success: true,
+      message: "Address added successfully",
+      addresses: user.addresses
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const getAllAddresses = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user)
+      return res.status(404).json({ message: "User not found" });
+
+    res.json({
+      success: true,
+      addresses: user.addresses
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+export const updateAddress = async (req, res) => {
+  try {
+    const { userId, addressIndex } = req.params;
+    const data = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Auto update fullAddress if any part updated
+    if (
+      data.street || data.city || data.state ||
+      data.country || data.postalCode
+    ) {
+      data.fullAddress =
+        `${data.street || user.addresses[addressIndex].street}, 
+         ${data.city || user.addresses[addressIndex].city}, 
+         ${data.state || user.addresses[addressIndex].state}, 
+         ${data.postalCode || user.addresses[addressIndex].postalCode}, 
+         ${data.country || user.addresses[addressIndex].country}`.replace(/\s+/g, " ");
+    }
+
+    user.addresses[addressIndex] = {
+      ...user.addresses[addressIndex],
+      ...data
+    };
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Address updated",
+      addresses: user.addresses
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const deleteAddress = async (req, res) => {
+  try {
+    const { userId, addressIndex } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user)
+      return res.status(404).json({ message: "User not found" });
+
+    user.addresses.splice(addressIndex, 1);
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Address deleted",
+      addresses: user.addresses
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
