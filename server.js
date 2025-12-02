@@ -3,6 +3,7 @@ import http from "http";
 import mongoose from "mongoose";
 import cors from "cors";   // ✅ ADD THIS IMPORT
 import authRoutes from "./routes/authRoutes.js";
+import farmhouse from "./routes/farmhouseRoutes.js"
 import dotenv from "dotenv";
 dotenv.config(); // MUST be first
 
@@ -19,6 +20,7 @@ console.log("JWT_SECRET loaded:", process.env.JWT_SECRET ? "✅ Yes" : "❌ No")
 
 //Route
 app.use("/api/auth", authRoutes);
+app.use("/api",farmhouse);
 
 // MongoDB connection
 mongoose
