@@ -269,7 +269,6 @@ export const deleteBooking = async (req, res) => {
       success: true,
       message: "Booking deleted successfully"
     });
-
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
