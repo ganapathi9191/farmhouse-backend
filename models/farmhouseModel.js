@@ -42,6 +42,7 @@ const farmhouseSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+
 // 2D Geospatial Index
 farmhouseSchema.index({ location: "2dsphere" });
 
