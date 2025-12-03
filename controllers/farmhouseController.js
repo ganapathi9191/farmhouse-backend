@@ -12,7 +12,8 @@ export const createFarmhouse = async (req, res) => {
       address,
       description,
       amenities,
-      price,
+      pricePerHour,
+      pricePerDay,
       rating,
       feedbackSummary,
       bookingFor,
@@ -20,8 +21,11 @@ export const createFarmhouse = async (req, res) => {
       lng
     } = req.body;
 
-    if (!name || !address || !price)
-      return res.status(400).json({ message: "Name, Address & Price required" });
+    if (!name || !address)
+      return res.status(400).json({ message: "Name & Address required" });
+
+    if (!pricePerHour || !pricePerDay)
+      return res.status(400).json({ message: "Price per hour & day required" });
 
     if (!lat || !lng)
       return res.status(400).json({ message: "Lat & Lng required" });
@@ -32,16 +36,11 @@ export const createFarmhouse = async (req, res) => {
       for (const file of req.files) {
         const uploaded = await new Promise((resolve, reject) => {
           cloudinary.uploader.upload_stream(
-            {
-              folder: "farmhouses",
-              resource_type: "auto"
-            },
-            (err, result) => {
-              if (err) reject(err);
-              else resolve(result);
-            }
+            { folder: "farmhouses", resource_type: "auto" },
+            (err, result) => err ? reject(err) : resolve(result)
           ).end(file.buffer);
         });
+
         imageUrls.push(uploaded.secure_url);
       }
     }
@@ -52,7 +51,8 @@ export const createFarmhouse = async (req, res) => {
       address,
       description,
       amenities: amenities ? amenities.split(",") : [],
-      price,
+      pricePerHour,
+      pricePerDay,
       rating,
       feedbackSummary,
       bookingFor,
@@ -67,10 +67,13 @@ export const createFarmhouse = async (req, res) => {
       message: "Farmhouse created successfully",
       farmhouse
     });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
+
 
 // ----------------------------------------------
 // GET ALL FARMHOUSES
@@ -117,7 +120,6 @@ export const updateFarmhouse = async (req, res) => {
     let newImages = farmhouse.images;
 
     if (req.files && req.files.length > 0) {
-      // delete old images
       for (const img of farmhouse.images) {
         const publicId = img.split("/").pop().split(".")[0];
         cloudinary.uploader.destroy(`farmhouses/${publicId}`);
@@ -150,6 +152,7 @@ export const updateFarmhouse = async (req, res) => {
       message: "Farmhouse updated",
       farmhouse: updated
     });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

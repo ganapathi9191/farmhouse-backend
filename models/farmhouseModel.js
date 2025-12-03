@@ -3,23 +3,23 @@ import mongoose from "mongoose";
 const farmhouseSchema = new mongoose.Schema({
   name: { type: String, required: true },
 
-  images: [String], // cloudinary URLs
+  images: [String],
 
   address: { type: String, required: true },
 
   description: String,
 
-  amenities: [String], // ["pool", "bbq", "garden"]
+  amenities: [String],
 
-  bookingFor: { type: String }, // ex: "birthday", "marriage", "friends-party"
+  bookingFor: { type: String },
 
-  price: { type: Number, required: true },
+  pricePerHour: { type: Number, required: true },  // ⭐ required
+  pricePerDay: { type: Number, required: true },   // ⭐ required
 
   rating: { type: Number, default: 0 },
 
   feedbackSummary: { type: String, default: "" },
 
-  // GeoJSON location for NEARBY FARMHOUSE
   location: {
     type: {
       type: String,
@@ -27,12 +27,11 @@ const farmhouseSchema = new mongoose.Schema({
       default: "Point"
     },
     coordinates: {
-      type: [Number], // [lng, lat]
+      type: [Number],
       default: [0.0, 0.0]
     }
   },
 
-  // Wishlist – users who saved farmhouse
   wishlist: [
     {
       type: mongoose.Schema.Types.ObjectId,
