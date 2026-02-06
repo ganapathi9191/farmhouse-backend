@@ -1,15 +1,34 @@
 import mongoose from "mongoose";
 
 const addressSchema = new mongoose.Schema({
-  street: String,
-  city: String,
-  state: String,
-  country: String,
-  postalCode: String,
-  addressType: String, // Home, Office, Hostel...
+  street: { type: String, required: true },
+  city: { type: String, required: true },
+  state: { type: String, required: true },
+  country: { type: String, required: true, default: "India" },
+  pinCode: { type: String, required: true, match: /^[0-9]{6}$/ }, // 6-digit Indian pin code
+  addressType: { 
+    type: String, 
+    enum: ["home", "work", "other"], 
+    default: "home" 
+  },
   lat: Number,
   lng: Number,
-  fullAddress: String
+  fullAddress: String,
+  landmark: String, // Optional landmark
+  isDefault: { type: Boolean, default: false }
+}, { _id: true });
+
+const notificationSchema = new mongoose.Schema({
+  title: String,
+  message: String,
+  type: { 
+    type: String, 
+    enum: ["booking", "payment", "cancellation", "general", "promotion"],
+    default: "general"
+  },
+  read: { type: Boolean, default: false },
+  relatedId: mongoose.Schema.Types.ObjectId, // Reference to booking/order
+  createdAt: { type: Date, default: Date.now }
 });
 
 const userSchema = new mongoose.Schema({
@@ -17,16 +36,12 @@ const userSchema = new mongoose.Schema({
   lastName: String,
   fullName: String,
   username: String,
-
   gender: { type: String, enum: ["male", "female", "other"], default: "other" },
-
   email: { type: String, unique: true },
   phoneNumber: { type: String, unique: true },
-
   profileImage: String,
   password: String,
-
-  // 🔥 Live Location GeoJSON
+  
   liveLocation: {
     type: {
       type: String,
@@ -34,29 +49,23 @@ const userSchema = new mongoose.Schema({
       default: "Point"
     },
     coordinates: {
-      type: [Number], // [lng, lat]
+      type: [Number],
       default: [0.0, 0.0]
     }
   },
+  
+  addresses: [addressSchema],
+  notifications: [notificationSchema],
+  wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: "Farmhouse" }]
+}, { timestamps: true });
 
-  // 🔥 Array of Addresses
-  addresses: [addressSchema]
-});
+userSchema.index({ liveLocation: "2dsphere" });
 
-// --------------------------------------
-// BANNER SCHEMA
-// --------------------------------------
 const bannerSchema = new mongoose.Schema({
-  images: [String], // Cloudinary URLs array
+  images: [String],
+  isActive: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now }
 });
-
-// --------------------------------------
-// EXPORT MODELS (NO DEFAULT)
-// --------------------------------------
-
-userSchema.index({ location: "2dsphere" });
-
 
 export const User = mongoose.model("User", userSchema);
 export const Banner = mongoose.model("Banner", bannerSchema);

@@ -392,6 +392,33 @@ export const deleteAccount = async (req, res) => {
   }
 };
 
+
+// ------------------------
+// GET ALL USERS
+// ------------------------
+export const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find()
+      .select("-password") // exclude password for security
+      .sort({ createdAt: -1 }); // latest users first
+
+    res.json({
+      success: true,
+      count: users.length,
+      users,
+    });
+
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch users",
+      error: err.message,
+    });
+  }
+};
+
+
+
 // ------------------------------------------------------------
 // UPLOAD MULTIPLE IMAGES (CREATE BANNER)
 // ------------------------------------------------------------
@@ -748,6 +775,169 @@ export const deleteAddress = async (req, res) => {
       success: true,
       message: "Address deleted",
       addresses: user.addresses
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+// ------------------------
+// NOTIFICATIONS FEATURES
+// ------------------------
+export const getNotifications = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({
+      success: true,
+      notifications: user.notifications
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const markNotificationAsRead = async (req, res) => {
+  try {
+    const { userId, notificationId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const notification = user.notifications.id(notificationId);
+    if (!notification) {
+      return res.status(404).json({ message: "Notification not found" });
+    }
+
+    notification.read = true;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Notification marked as read"
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const clearNotifications = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.notifications = [];
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "All notifications cleared"
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// ------------------------
+// CREATE NOTIFICATION (INTERNAL USE)
+// ------------------------
+export const createNotification = async (userId, message, type = "info") => {
+  try {
+    const user = await User.findById(userId);
+    if (!user) return;
+
+    user.notifications.push({
+      message,
+      type,
+      read: false
+    });
+
+    await user.save();
+  } catch (err) {
+    console.error("Error creating notification:", err);
+  }
+};
+
+// ------------------------
+// RATINGS FEATURES
+// ------------------------
+export const submitRating = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { farmhouseId, rating, review } = req.body;
+
+    if (!farmhouseId || !rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ 
+        message: "Valid farmhouse ID and rating (1-5) are required" 
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Check if user has already rated this farmhouse
+    const existingRating = user.ratingsGiven.find(
+      r => r.farmhouseId.toString() === farmhouseId
+    );
+
+    if (existingRating) {
+      // Update existing rating
+      existingRating.rating = rating;
+      existingRating.review = review || existingRating.review;
+    } else {
+      // Add new rating
+      user.ratingsGiven.push({
+        farmhouseId,
+        rating,
+        review: review || ""
+      });
+    }
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Rating submitted successfully",
+      ratingsGiven: user.ratingsGiven
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const getUserRatings = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findById(userId).populate({
+      path: 'ratingsGiven.farmhouseId',
+      select: 'name images address'
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({
+      success: true,
+      ratingsGiven: user.ratingsGiven
     });
 
   } catch (err) {

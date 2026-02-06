@@ -6,33 +6,56 @@ const bookingSchema = new mongoose.Schema({
     ref: "User",
     required: true
   },
-
   farmhouseId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Farmhouse",
     required: true
   },
-
-  farmhouseImage: { 
-    type: String, 
-    default: null             // ⭐ newly added field
+  transactionId: {
+    type: String,
+    required: true,
+    unique: true
   },
-
-  startDate: { type: Date, required: true },
-  endDate: { type: Date, required: true },
-
-  totalPrice: { type: Number, required: true },
-
+  verificationId: {
+    type: String,
+    required: true
+  },
+  razorpayOrderId: String,
+  razorpayPaymentId: String,
+  razorpaySignature: String,
+  
+  bookingDetails: {
+    date: { type: Date, required: true },
+    label: { type: String, required: true },
+    timing: { type: String, required: true },
+    checkIn: { type: Date, required: true },
+    checkOut: { type: Date, required: true }
+  },
+  
+  slotPrice: { type: Number, required: true },
+  cleaningFee: { type: Number, default: 0, required: true },
+  serviceFee: { type: Number, default: 0, required: true },
+  totalAmount: { type: Number, required: true },
+  
   status: {
     type: String,
-    enum: ["pending", "confirmed", "cancelled"],
+    enum: ["pending", "confirmed", "cancelled", "completed"],
     default: "pending"
   },
-
-  createdAt: { type: Date, default: Date.now }
+  
+  paymentStatus: {
+    type: String,
+    enum: ["pending", "completed", "failed", "refunded"],
+    default: "pending"
+  },
+  
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
 });
 
-// Prevent overlapping bookings
-bookingSchema.index({ farmhouseId: 1, startDate: 1, endDate: 1 });
+bookingSchema.pre("save", function(next) {
+  this.updatedAt = new Date();
+  next();
+});
 
 export const Booking = mongoose.model("Booking", bookingSchema);

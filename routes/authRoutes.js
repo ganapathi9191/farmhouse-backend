@@ -15,6 +15,7 @@ router.put("/:userId/update", upload.single("profileImage"), UserController.upda
 router.delete("/delete-image/:userId", UserController.deleteProfileImage);
 
 router.delete("/delete-account/:userId", UserController.deleteAccount);
+router.get("/users", UserController.getAllUsers);
 
 router.post("/create-banner", upload.array("images", 10), UserController.createBanner);
 router.get("/all-banners", UserController.getAllBanners);

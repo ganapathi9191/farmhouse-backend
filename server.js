@@ -4,7 +4,9 @@ import mongoose from "mongoose";
 import cors from "cors";   // ✅ ADD THIS IMPORT
 import authRoutes from "./routes/authRoutes.js";
 import farmhouse from "./routes/farmhouseRoutes.js";
-import booking from "./routes/bookingRoutes.js";
+import cartRoutes from "./routes/cartRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";
+import feeConfigRoutes from "./routes/feeConfigRoutes.js";
 import dotenv from "dotenv";
 dotenv.config(); // MUST be first
 
@@ -22,7 +24,9 @@ console.log("JWT_SECRET loaded:", process.env.JWT_SECRET ? "✅ Yes" : "❌ No")
 //Route
 app.use("/api/auth", authRoutes);
 app.use("/api",farmhouse);
-app.use("/api",booking);
+app.use("/api/cart", cartRoutes);
+app.use("/api/order", orderRoutes);
+app.use("/api/fees", feeConfigRoutes);
 
 // MongoDB connection
 mongoose
