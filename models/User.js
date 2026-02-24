@@ -37,6 +37,14 @@ const userSchema = new mongoose.Schema({
   fullName: String,
   username: String,
   gender: { type: String, enum: ["male", "female", "other"], default: "other" },
+
+    deleteToken: {
+    type: String,
+  },
+  deleteTokenExpiration: {
+    type: Date,
+  },
+
   email: { type: String, unique: true },
   phoneNumber: { type: String, unique: true },
   profileImage: String,

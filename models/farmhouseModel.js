@@ -4,8 +4,15 @@ import mongoose from "mongoose";
 const timePriceSchema = new mongoose.Schema({
   label: String,
   timing: String, // "9am - 8pm"
-  price: Number
+  price: Number,
+  inactiveDates: [{  // Add this array to track dates when this slot is inactive
+    date: { type: Date, required: true },
+    reason: String,
+    createdAt: { type: Date, default: Date.now }
+  }],
+  isActive: { type: Boolean, default: true } // Overall active status for this slot
 });
+
 
 /* BOOKED SLOTS */
 const bookedSlotSchema = new mongoose.Schema({
@@ -20,9 +27,17 @@ const bookedSlotSchema = new mongoose.Schema({
   },
   checkIn: { type: Date, required: true },
   checkOut: { type: Date, required: true },
+    date: { type: Date }, // ✅ ADD THIS FIELD
   label: { type: String, required: true },
   timing: { type: String, required: true },
   bookedAt: { type: Date, default: Date.now }
+});
+
+/* INACTIVE DATES */
+const inactiveDateSchema = new mongoose.Schema({
+  date: { type: Date, required: true }, // Specific date when farmhouse is inactive
+  reason: String, // Optional reason for being inactive
+  createdAt: { type: Date, default: Date.now }
 });
 
 /* REVIEWS */
@@ -52,6 +67,7 @@ const farmhouseSchema = new mongoose.Schema({
   bookedSlots: [bookedSlotSchema], // Booked slots
   
   reviews: { type: [reviewSchema], default: [] },
+  inactiveDates: [inactiveDateSchema],
 
   location: {
     type: { type: String, enum: ["Point"], default: "Point" },
@@ -62,6 +78,7 @@ const farmhouseSchema = new mongoose.Schema({
 
   rating: { type: Number, default: 0 },
   feedbackSummary: String,
+  active: { type: Boolean, default: true }, // Overall active status
 
   createdAt: { type: Date, default: Date.now }
 });

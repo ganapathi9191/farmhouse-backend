@@ -2,14 +2,17 @@ import express from "express";
 import {
   verifySlotAvailability,
   createBooking,
-  
-  getVerificationStatus,
-  getUserBookings,
-  getBookingDetails,
-  getBookingByTransactionId,
+ getUserBookings, 
   cancelBooking,
-  getBookingHistory,
-  getAllBookings
+  getAllBookingsSummary,
+  getUserBookingsAllStatus,
+  getBookingsByDateRange,
+  getDashboardData,
+    getAllPayments,
+  getPaymentById,
+  getPaymentStatistics,
+  getUserPayments,
+  getRevenueAnalytics
 } from "../controllers/orderController.js";
 
 const router = express.Router();
@@ -17,16 +20,29 @@ const router = express.Router();
 // Booking routes
 router.post("/verify-slot", verifySlotAvailability); // Verify slot and get verificationId
 router.post("/create", createBooking); // Create booking with verificationId
-router.get("/verification-status", getVerificationStatus); // Check verification status
+// Get bookings with status filter
+router.get('/all', getUserBookings);
 
-// User bookings
-router.get("/user/:userId", getUserBookings); // Get user bookings
-router.get("/:bookingId", getBookingDetails); // Get booking details by ID
-router.get("/transaction/:transactionId", getBookingByTransactionId); // Get booking by transaction ID
-router.put("/cancel/:bookingId", cancelBooking); // Cancel booking
-router.get("/history/:userId", getBookingHistory); // Get booking history with filters
+// Cancel booking
+router.post('/cancel', cancelBooking);
 
-// Admin routes
-router.get("/admin/all", getAllBookings); // Admin: Get all bookings
+router.get('/admin/summary', getAllBookingsSummary); // Admin only
+router.get('/user/:userId/all-status', getUserBookingsAllStatus);
+router.get('/date-range', getBookingsByDateRange);
+router.get('/dashbord',getDashboardData)
+
+// GET all payments with filters 
+router.get('/payments', getAllPayments);
+
+// GET payment statistics/dashboard
+router.get('/payments/statistics', getPaymentStatistics);
+
+// GET single payment by ID
+router.get('/payments/:paymentId', getPaymentById);
+
+// GET user payment history
+router.get('/users/:userId/payments', getUserPayments);
+
+router.get("/revenue", getRevenueAnalytics);
 
 export default router;

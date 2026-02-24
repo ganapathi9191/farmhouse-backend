@@ -1,43 +1,47 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const verificationTokenSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true
-  },
-  farmhouseId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Farmhouse",
-    required: true
-  },
-  verificationId: {
+  token: {
     type: String,
     required: true,
     unique: true
   },
-  slotDetails: {
-    date: Date,
-    label: String,
-    timing: String,
-    checkIn: Date,
-    checkOut: Date,
-    price: Number
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
   },
-  priceBreakdown: {
-    slotPrice: Number,
-    cleaningFee: Number,
-    serviceFee: Number,
-    totalAmount: Number
+  farmhouseId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Farmhouse',
+    required: true
   },
-  status: {
+  slotId: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true
+  },
+  date: {
+    type: Date,
+    required: true
+  },
+  label: {
     type: String,
-    enum: ["pending", "used", "expired"],
-    default: "pending"
+    required: true
+  },
+  timing: {
+    type: String,
+    required: true
   },
   expiresAt: {
     type: Date,
     required: true
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  usedAt: {
+    type: Date
   },
   createdAt: {
     type: Date,
@@ -45,7 +49,7 @@ const verificationTokenSchema = new mongoose.Schema({
   }
 });
 
-// Create TTL index for auto-deletion after expiry
 verificationTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+verificationTokenSchema.index({ userId: 1, farmhouseId: 1, slotId: 1, date: 1 });
 
-export const VerificationToken = mongoose.model("VerificationToken", verificationTokenSchema);
+export const VerificationToken = mongoose.model('VerificationToken', verificationTokenSchema);

@@ -2,6 +2,10 @@ import express from "express";
 import upload from "../utils/upload.js";
 import {
   createFarmhouse,
+    toggleActiveStatus,      // New
+  addInactiveDate,        // New
+  removeInactiveDate,     // New
+  getInactiveDates,       // New
   getAllFarmhouses,
   getFarmhouseById,
   updateFarmhouse,
@@ -12,15 +16,10 @@ import {
   getAvailableSlots,
   searchFarmhouse,
   filterFarmhouses,
-  checkAvailabilityByRange,
-  bookSlot,
-  cancelBooking,
-  getUserBookings,
-  getUserBookingHistory,
+
   createReview,
-  getFarmhouseBookings,
-  adminBlockSlot,
-  adminUnblockSlot,
+
+  toggleSlotActive
   
 } from "../controllers/farmhouseController.js";
 
@@ -30,10 +29,19 @@ const router = express.Router();
    FARMHOUSE CRUD 
 ===================================================== */
 router.post("/farmhouse-create", upload.array("images", 10), createFarmhouse);
+
+// New admin control routes
+router.put("/:farmhouseId/toggle-active", toggleActiveStatus);
+router.post("/:farmhouseId/inactive-dates", addInactiveDate);
+router.delete("/:farmhouseId/inactive-dates/:dateId", removeInactiveDate);
+router.get("/:farmhouseId/inactive-dates", getInactiveDates);
+
 router.get("/all-farmhouse", getAllFarmhouses);
 router.get("/farmhouse/:farmhouseId", getFarmhouseById);
 router.put("/farmhouse/:farmhouseId", upload.array("images", 10), updateFarmhouse);
 router.delete("/farmhouse/:farmhouseId", deleteFarmhouse);
+
+router.put("/:farmhouseId/slots/:slotId/toggle", toggleSlotActive);
 
 /* ===================================================== 
    WISHLIST 
@@ -49,27 +57,13 @@ router.get("/nearby/user/:userId", getNearbyFarmhouses);
    AVAILABILITY 
 ===================================================== */
 router.get("/:farmhouseId/slots", getAvailableSlots);
-router.get("/check-availability", checkAvailabilityByRange);
 router.get("/search", searchFarmhouse);
 router.get("/search-filter", filterFarmhouses);
-/* ===================================================== 
-   BOOKINGS (USER) 
-===================================================== */
-router.post("/:farmhouseId/book", bookSlot);
-router.post("/:farmhouseId/cancel", cancelBooking);
-router.get("/user/:userId/bookings", getUserBookings);
-router.get("/user/:userId/history", getUserBookingHistory);
 
 /* ===================================================== 
    REVIEWS 
 ===================================================== */
 router.post("/:farmhouseId/review", createReview);
 
-/* ===================================================== 
-   ADMIN 
-===================================================== */
-router.get("/:farmhouseId/admin/bookings", getFarmhouseBookings);
-router.post("/:farmhouseId/admin/block", adminBlockSlot);
-router.post("/admin/unblock", adminUnblockSlot);
 
 export default router;

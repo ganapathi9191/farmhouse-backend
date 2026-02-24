@@ -7,6 +7,7 @@ import farmhouse from "./routes/farmhouseRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import feeConfigRoutes from "./routes/feeConfigRoutes.js";
+import vendor from "./routes/vendor.js";
 import dotenv from "dotenv";
 dotenv.config(); // MUST be first
 
@@ -27,7 +28,7 @@ app.use("/api",farmhouse);
 app.use("/api/cart", cartRoutes);
 app.use("/api/order", orderRoutes);
 app.use("/api/fees", feeConfigRoutes);
-
+app.use('/api/vendor',vendor);
 // MongoDB connection
 mongoose
   .connect(process.env.MONGO_URI)
@@ -46,3 +47,4 @@ const PORT = process.env.PORT || 5124;
 server.listen(PORT, () =>
   console.log(`🚀 Server running on port ${PORT}`)
 );
+

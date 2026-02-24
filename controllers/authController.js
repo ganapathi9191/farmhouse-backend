@@ -1,7 +1,12 @@
-import {User,Banner} from "../models/User.js";
+import { User, Banner } from "../models/User.js";
 import bcrypt from "bcryptjs";
 import { generateToken, verifyToken } from "../utils/jwt.js";
 import cloudinary from "../config/cloudinary.js";
+import crypto from 'crypto';
+import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
+dotenv.config();
+
 
 export const register = async (req, res) => {
   try {
@@ -204,9 +209,10 @@ export const resetPassword = async (req, res) => {
 // UPDATE PROFILE
 // ------------------------
 export const updateProfile = async (req, res) => {
-    try {
+  try {
     const { userId } = req.params;
 
+    
     console.log("📝 Update Profile Request:");
     console.log("UserID:", userId);
     console.log("Body:", req.body);
@@ -251,7 +257,7 @@ export const updateProfile = async (req, res) => {
           api_key: process.env.CLOUDINARY_API_KEY,
           api_secret: process.env.CLOUDINARY_API_SECRET ? "present" : "missing"
         });
-        
+
         // Re-configure cloudinary to ensure credentials are set
         cloudinary.config({
           cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -259,10 +265,10 @@ export const updateProfile = async (req, res) => {
           api_secret: process.env.CLOUDINARY_API_SECRET,
           secure: true
         });
-        
+
         const uploadedImage = await new Promise((resolve, reject) => {
           const uploadStream = cloudinary.uploader.upload_stream(
-            { 
+            {
               folder: "profile_images",
               resource_type: "auto",
               transformation: [
@@ -279,16 +285,16 @@ export const updateProfile = async (req, res) => {
               }
             }
           );
-          
+
           uploadStream.end(req.file.buffer);
         });
 
         updateData.profileImage = uploadedImage.secure_url;
-        
+
       } catch (uploadError) {
         console.error("❌ Upload error:", uploadError);
-        return res.status(500).json({ 
-          message: "Image upload failed", 
+        return res.status(500).json({
+          message: "Image upload failed",
           error: uploadError.message,
           details: uploadError.http_code ? `Cloudinary error ${uploadError.http_code}` : "Unknown error"
         });
@@ -296,8 +302,8 @@ export const updateProfile = async (req, res) => {
     }
 
     const updatedUser = await User.findByIdAndUpdate(
-      userId, 
-      updateData, 
+      userId,
+      updateData,
       {
         new: true,
         runValidators: true
@@ -316,9 +322,9 @@ export const updateProfile = async (req, res) => {
 
   } catch (err) {
     console.error("❌ Update profile error:", err);
-    res.status(500).json({ 
+    res.status(500).json({
       message: "Error updating profile",
-      error: err.message 
+      error: err.message
     });
   }
 };
@@ -376,21 +382,21 @@ export const deleteProfileImage = async (req, res) => {
 // ------------------------
 // DELETE ACCOUNT
 // ------------------------
-export const deleteAccount = async (req, res) => {
-   try {
-    const { userId } = req.params;
+// export const deleteUserAccount = async (req, res) => {
+//    try {
+//     const { userId } = req.params;
 
-    await User.findByIdAndDelete(userId);
+//     await User.findByIdAndDelete(userId);
 
-    res.json({
-      success: true,
-      message: "Account deleted successfully",
-    });
+//     res.json({
+//       success: true,
+//       message: "Account deleted successfully",
+//     });
 
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
 
 
 // ------------------------
@@ -417,7 +423,80 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
+// ------------------------
+// GET USER BY ID
+// ------------------------
+export const getUserById = async (req, res) => {
+  try {
+    const { userId } = req.params;
 
+    // Validate user ID format
+    if (!userId || !userId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ 
+        message: "Invalid user ID format" 
+      });
+    }
+
+    const user = await User.findById(userId)
+      .select('-password -deleteToken -deleteTokenExpiration'); // Exclude sensitive fields
+
+    if (!user) {
+      return res.status(404).json({ 
+        message: "User not found" 
+      });
+    }
+
+    res.json({
+      success: true,
+      user: user
+    });
+
+  } catch (err) {
+    console.error("❌ Get user by ID error:", err);
+    res.status(500).json({ 
+      message: "Error fetching user",
+      error: err.message 
+    });
+  }
+};
+
+// ------------------------
+// DELETE USER BY ID (SIMPLE)
+// ------------------------
+export const deleteUserById = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Basic validation
+    if (!userId) {
+      return res.status(400).json({ 
+        message: "User ID is required" 
+      });
+    }
+
+    // Find and delete user
+    const deletedUser = await User.findByIdAndDelete(userId);
+
+    if (!deletedUser) {
+      return res.status(404).json({ 
+        message: "User not found" 
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "User deleted successfully",
+      userId: userId
+    });
+
+  } catch (err) {
+    console.error("Delete user error:", err);
+    res.status(500).json({ 
+      message: "Error deleting user",
+      error: err.message 
+    });
+  }
+};
 
 // ------------------------------------------------------------
 // UPLOAD MULTIPLE IMAGES (CREATE BANNER)
@@ -781,6 +860,83 @@ export const deleteAddress = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+
+
+// export const deleteUserAccount = async (req, res) => {
+//   try {
+//     const { userId } = req.params;
+
+//     // Check user exists
+//     const user = await User.findById(userId);
+//     if (!user) {
+//       return res.status(404).json({ message: 'User not found' });
+//     }
+
+//     // Delete all forms submitted by this user
+//     await Form.deleteMany({ student: userId });
+
+//     // Delete user
+//     await User.findByIdAndDelete(userId);
+
+//     return res.status(200).json({
+//       message: 'Account deleted successfully'
+//     });
+//   } catch (error) {
+//     console.error('Error deleting account:', error);
+//     res.status(500).json({ message: 'Server error' });
+//   }
+// };
+
+// ------------------------
+// DELETE ACCOUNT WITHOUT CONFIRMATION (DIRECT DELETE)
+// ------------------------
+export const deleteUserAccount = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Basic validation
+    if (!userId) {
+      return res.status(400).json({ 
+        message: "User ID is required" 
+      });
+    }
+
+    // Check if user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ 
+        message: "User not found" 
+      });
+    }
+
+    // Delete user
+    await User.findByIdAndDelete(userId);
+
+    res.status(200).json({
+      success: true,
+      message: "Account deleted successfully"
+    });
+
+  } catch (err) {
+    console.error("Delete account error:", err);
+    res.status(500).json({ 
+      message: "Error deleting account",
+      error: err.message 
+    });
+  }
+};
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: "pms226803@gmail.com",
+    pass: "nrasbifqxsxzurrm",
+  },
+});
+
+
+
 // ------------------------
 // NOTIFICATIONS FEATURES
 // ------------------------
@@ -802,6 +958,7 @@ export const getNotifications = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 export const markNotificationAsRead = async (req, res) => {
   try {
@@ -881,8 +1038,8 @@ export const submitRating = async (req, res) => {
     const { farmhouseId, rating, review } = req.body;
 
     if (!farmhouseId || !rating || rating < 1 || rating > 5) {
-      return res.status(400).json({ 
-        message: "Valid farmhouse ID and rating (1-5) are required" 
+      return res.status(400).json({
+        message: "Valid farmhouse ID and rating (1-5) are required"
       });
     }
 
@@ -935,6 +1092,7 @@ export const getUserRatings = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    // KEEPING YOUR SAME RESPONSE
     res.json({
       success: true,
       ratingsGiven: user.ratingsGiven
@@ -942,5 +1100,222 @@ export const getUserRatings = async (req, res) => {
 
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+
+
+
+
+export const deleteAccount = async (req, res) => {
+  const { email, reason } = req.body;
+
+  if (!email || !reason) {
+    return res.status(400).json({
+      message: "Email and deletion reason are required",
+    });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Generate token
+    const token = crypto.randomBytes(20).toString("hex");
+    const deleteLink = `${process.env.BASE_URL}/confirm-delete-account/${token}`;
+
+    // Save token & expiry
+    user.deleteToken = token;
+    user.deleteTokenExpiration = Date.now() + 60 * 60 * 1000;
+    await user.save();
+
+    // Send email
+    const mailOptions = {
+      from: "pms226803@gmail.com",
+      to: email,
+      subject: "Confirm Account Deletion",
+      text: `Hi ${user.fullName || "User"},
+
+We received your account deletion request.
+
+To confirm deletion, click the link below:
+${deleteLink}
+
+Reason:
+${reason}
+
+If you did not request this, please ignore this email.
+
+Regards,
+Your Team`,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    return res.status(200).json({
+      message: "Account deletion link sent successfully. Please check your email.",
+    });
+
+  } catch (error) {
+    console.error("Delete user request error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+
+export const confirmDeleteAccount = async (req, res) => {
+  const { token } = req.params;
+
+  try {
+    const user = await User.findOne({
+      deleteToken: token,
+      deleteTokenExpiration: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "Invalid or expired token" });
+    }
+
+    // Optional: delete user's forms also
+    // await Form.deleteMany({ student: user._id });
+
+    await User.findByIdAndDelete(user._id);
+
+    return res.status(200).json({
+      message: "Your account has been deleted successfully",
+    });
+
+  } catch (error) {
+    console.error("Confirm delete user error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ------------------------
+// ADMIN UPDATE USER
+// ------------------------
+export const adminUpdateUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    console.log("📝 Admin Update User Request:");
+    console.log("UserID:", userId);
+    console.log("Body:", req.body);
+
+    // Validate userId
+    if (!userId || !userId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Invalid user ID format" 
+      });
+    }
+
+    const { firstName, lastName, email, phoneNumber, gender, username } = req.body;
+
+    // Build update data
+    let updateData = {};
+
+    // Update name fields if provided
+    if (firstName || lastName) {
+      const currentUser = await User.findById(userId);
+      if (!currentUser) {
+        return res.status(404).json({ 
+          success: false,
+          message: "User not found" 
+        });
+      }
+
+      const newFirstName = firstName || currentUser.firstName;
+      const newLastName = lastName || currentUser.lastName;
+      
+      updateData.firstName = newFirstName;
+      updateData.lastName = newLastName;
+      updateData.fullName = `${newFirstName} ${newLastName}`.trim();
+    }
+
+    // Add other fields if provided
+    if (email) updateData.email = email;
+    if (phoneNumber) updateData.phoneNumber = phoneNumber;
+    if (gender) updateData.gender = gender;
+    if (username !== undefined) updateData.username = username;
+
+    // Check if phone number is already taken by another user
+    if (phoneNumber) {
+      const existingUser = await User.findOne({ 
+        phoneNumber, 
+        _id: { $ne: userId } 
+      });
+      if (existingUser) {
+        return res.status(400).json({ 
+          success: false,
+          message: "Phone number already registered by another user" 
+        });
+      }
+    }
+
+    // Check if email is already taken by another user
+    if (email) {
+      const existingUser = await User.findOne({ 
+        email, 
+        _id: { $ne: userId } 
+      });
+      if (existingUser) {
+        return res.status(400).json({ 
+          success: false,
+          message: "Email already registered by another user" 
+        });
+      }
+    }
+
+    // Update the user
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: updateData },
+      {
+        new: true,
+        runValidators: true,
+        select: '-password -deleteToken -deleteTokenExpiration' // Exclude sensitive fields
+      }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ 
+        success: false,
+        message: "User not found" 
+      });
+    }
+
+    // Create notification for the user about profile update
+    await createNotification(
+      userId,
+      "Your profile was updated by an administrator",
+      "info"
+    );
+
+    res.json({
+      success: true,
+      message: "User updated successfully by admin",
+      user: updatedUser
+    });
+
+  } catch (err) {
+    console.error("❌ Admin update user error:", err);
+    
+    // Handle validation errors
+    if (err.name === 'ValidationError') {
+      const errors = Object.values(err.errors).map(e => e.message);
+      return res.status(400).json({ 
+        success: false,
+        message: "Validation error",
+        errors: errors 
+      });
+    }
+
+    res.status(500).json({ 
+      success: false,
+      message: "Error updating user",
+      error: err.message 
+    });
   }
 };
